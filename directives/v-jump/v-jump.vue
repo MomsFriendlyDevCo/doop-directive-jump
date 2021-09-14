@@ -16,8 +16,13 @@ var jumps = {}; // Dictionary of active jumps to `el` binding
 *
 * @param {Object|string} options Either an options object or the value of `options.name`
 * @param {string} options.name The name of the jump item - must be unique within a page
-* @param {boolean} [options.smooth=true] Use smooth scrolling when jumping, can also be specified as 'nosmooth' modifier
+* @param {boolean} [options.smooth=true] Use smooth scrolling when jumping, can also be disabled with the 'nosmooth' modifier
 * @param {boolean} [options.remove=false] Remove the hash component from the URL after navigating, can also be specified as `remove` modifier
+* @param {boolean} [options.flash=true] Try to animate the target element (post scrolling) if it has the flashClassFilter CSS class, can also be disabled with the 'noflash' modifier
+* @param {string} [options.flashClass='v-jump-flash'] CSS class to add to the target if `flash` is enabled
+* @param {array<string>} [options.flashClassFilter=['card']] CSSes class to check for before applying `flash` behaviour
+* @param {string} [options.flashDelay=500] Interval in milliseconds before adding the `flashClass` CSS class
+* @param {string} [options.flashInterval=1500] Interval in milliseconds before removing the `flashClass` CSS class
 */
 app.directive('v-jump', {
 	bind(el, binding) {
@@ -25,9 +30,15 @@ app.directive('v-jump', {
 			name: undefined,
 			smooth: true,
 			remove: false,
+			flash: true,
+			flashClass: 'v-jump-flash',
+			flashClassFilter: ['card'],
+			flashDelay: 500,
+			flashInterval: 1500, //= 1.5s
 			...(typeof binding.value == 'string' ? {name: binding.value} : binding.value),
 			...(binding.modifiers.nosmooth ? {smooth: false} : {}),
 			...(binding.modifiers.remove ? {remove: true} : {}),
+			...(binding.modifiers.noflash ? {flash: false} : {}),
 		};
 		if (name.startsWith('#')) throw new Error('v-jump names cannot begin with hash');
 
@@ -57,10 +68,29 @@ app.ready.then(()=> {
 			if (jump) { // Jump exists - jump to it
 				debug('jump', hash, 'found, jumping');
 				jump.el.scrollIntoView(jump.smooth ? {behavior: 'smooth'} : undefined);
+
+				// Optional removal of the URL component
 				if (jump.remove) {
 					debug('removing hash', hash, 'from url');
 					app.router.replace({hash: undefined});
 				}
+
+				// Add optional flash class
+				if (jump.flash) {
+					debug('adding flash class');
+					var elClasses = new Set(jump.el.classList);
+					if (jump.flashClassFilter.some(fc => elClasses.has(fc))) {
+						setTimeout(()=> {
+							jump.el.classList.add(jump.flashClass);
+
+							if (jump.flashInterval > 0)
+								setTimeout(()=> jump.el.classList.remove(jump.flashClass), jump.flashInterval);
+						}, jump.flashDelay);
+					} else {
+						debug('v-jump target does not have any flashClassFilter selectors:', jump.flashClassFilter, '- skipping flash');
+					}
+				}
+
 			} else if (tryJumpCount++ < jumpSettings.tryMaximum) { // Still below limit
 				app.vue.$nextTick(()=> setTimeout(tryJump, jumpSettings.tryInterval));
 			} else {
@@ -78,3 +108,18 @@ app.ready.then(()=> {
 	});
 });
 </script>
+
+<style lang="scss">
+.v-jump-flash {
+	@keyframes v-jump-flash-blink {
+		50% { opacity: 0 }
+		100% { opacity: 1 }
+	}
+
+	/* BS4 style cards {{{ */
+	&.card {
+		animation: v-jump-flash-blink 0.5s linear 4;
+	}
+	/* }}} */
+}
+</style>
