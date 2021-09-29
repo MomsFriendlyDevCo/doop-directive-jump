@@ -35,6 +35,7 @@ app.directive('v-jump', {
 			flashClassFilter: ['card'],
 			flashDelay: 500,
 			flashInterval: 1500, //= 1.5s
+			settled: true,
 			...(typeof binding.value == 'string' ? {name: binding.value} : binding.value),
 			...(binding.modifiers.nosmooth ? {smooth: false} : {}),
 			...(binding.modifiers.remove ? {remove: true} : {}),
@@ -66,38 +67,42 @@ app.ready.then(()=> {
 			debug('Attempting to jump to', hash, 'try', tryJumpCount, '/', jumpSettings.tryMaximum);
 			var jump = jumps[hash];
 			if (jump) { // Jump exists - jump to it
-				debug('jump', hash, 'found, jumping');
-				jump.el.scrollIntoView(jump.smooth ? {behavior: 'smooth'} : undefined);
+				Promise.resolve()
+					.then(()=> jump.settled && app.settled()) // Wait for page settle first?
+					.then(()=> {
+						debug('jump', hash, 'found, jumping');
+						jump.el.scrollIntoView(jump.smooth ? {behavior: 'smooth'} : undefined);
 
-				// Optional removal of the URL component
-				if (jump.remove) {
-					debug('removing hash', hash, 'from url');
-					app.router.replace({hash: undefined});
-				}
+						// Optional removal of the URL component
+						if (jump.remove) {
+							debug('removing hash', hash, 'from url');
+							app.router.replace({hash: undefined});
+						}
 
-				// Add optional flash class
-				if (jump.flash) {
-					debug('adding flash class');
-					var elClasses = new Set(jump.el.classList);
-					if (jump.flashClassFilter.some(fc => elClasses.has(fc))) {
-						setTimeout(()=> {
-							jump.el.classList.add(jump.flashClass);
+						// Add optional flash class
+						if (jump.flash) {
+							debug('adding flash class');
+							var elClasses = new Set(jump.el.classList);
+							if (jump.flashClassFilter.some(fc => elClasses.has(fc))) {
+								setTimeout(()=> {
+									jump.el.classList.add(jump.flashClass);
 
-							if (jump.flashInterval > 0)
-								setTimeout(()=> jump.el.classList.remove(jump.flashClass), jump.flashInterval);
-						}, jump.flashDelay);
-					} else {
-						debug('v-jump target does not have any flashClassFilter selectors:', jump.flashClassFilter, '- skipping flash');
-					}
-				}
-
+									if (jump.flashInterval > 0)
+										setTimeout(()=> jump.el.classList.remove(jump.flashClass), jump.flashInterval);
+								}, jump.flashDelay);
+							} else {
+								debug('v-jump target does not have any flashClassFilter selectors:', jump.flashClassFilter, '- skipping flash');
+							}
+						}
+					});
 			} else if (tryJumpCount++ < jumpSettings.tryMaximum) { // Still below limit
 				app.vue.$nextTick(()=> setTimeout(tryJump, jumpSettings.tryInterval));
 			} else {
 				debug('jump', hash, 'still not found after', tryJumpCount  * jumpSettings.tryMaximum + 'ms', '- giving up');
 			}
 		};
-		tryJump(); // Initial jump attempt
+
+		tryJump() // Start in background
 		next(); // Continue on with navigation
 	};
 	app.router.beforeEach(routerHook);
