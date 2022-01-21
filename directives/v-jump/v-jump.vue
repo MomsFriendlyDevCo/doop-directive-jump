@@ -1,5 +1,6 @@
 <script lang="js" frontend>
-import Debug from '/services/debug';
+import Debug from '@doop/service-debug';
+
 var debug = Debug('v-href').enable(true);
 
 var jumpSettings = {
