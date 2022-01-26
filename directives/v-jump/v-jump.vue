@@ -1,5 +1,5 @@
 <script lang="js" frontend>
-import Debug from '@doop/service-debug';
+import Debug from '@doop/debug';
 
 var debug = Debug('v-href').enable(true);
 
