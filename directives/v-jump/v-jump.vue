@@ -1,6 +1,7 @@
 <script lang="js" frontend>
 import Debug from '@doop/debug';
 
+// TODO: Expose a property to enable/disable debugging from project level
 var debug = Debug('v-href').enable(true);
 
 var jumpSettings = {
