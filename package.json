@@ -17,5 +17,8 @@
   "homepage": "https://github.com/MomsFriendlyDevCo/doop-service-morph#readme",
   "dependencies": {
     "@doop/debug": "^1.0.4"
-  }
+  },
+  "workspaces": [
+    "../*"
+  ]
 }
