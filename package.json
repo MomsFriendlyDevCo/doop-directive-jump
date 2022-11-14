@@ -16,6 +16,6 @@
   },
   "homepage": "https://github.com/MomsFriendlyDevCo/doop-directive-jump#readme",
   "dependencies": {
-    "@doop/debug": "^1.0.4"
+    "@doop/debug": "^1.0.5"
   }
 }
